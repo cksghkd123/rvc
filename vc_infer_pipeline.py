@@ -132,6 +132,9 @@ class VC(object):
                 from lib.rmvpe import RMVPE
 
                 print("loading rmvpe model")
+                if self.device == "cpu":
+                    self.is_half = False
+                print("rmvpe.pt", self.is_half, self.device)
                 self.model_rmvpe = RMVPE(
                     "rmvpe.pt", is_half=self.is_half, device=self.device
                 )

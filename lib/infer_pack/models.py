@@ -413,8 +413,13 @@ class SourceModuleHnNSF(torch.nn.Module):
 
     def forward(self, x, upp=None):
         sine_wavs, uv, _ = self.l_sin_gen(x, upp)
-        if self.is_half:
-            sine_wavs = sine_wavs.half()
+
+        # 장치 확인 후 데이터 유형 조절
+        if x.is_cuda:  # CUDA 장치에서 실행 중인 경우
+            sine_wavs = sine_wavs.half() 
+        else:  # CPU에서 실행 중인 경우
+            sine_wavs = sine_wavs.float() 
+
         sine_merge = self.l_tanh(self.l_linear(sine_wavs))
         return sine_merge, None, None  # noise, uv
 
