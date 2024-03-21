@@ -28,11 +28,11 @@ def cache_harvest_f0(input_audio_path, fs, f0max, f0min, frame_period):
     return f0
 
 
-def change_rms(data1, sr1, data2, sr2, rate):  # 1是输入音频，2是输出音频,rate是2的占比
+def change_rms(data1, sr1, data2, sr2, rate):  # 1: 입력 오디오, 2: 출력 오디오, rate: 2 비율
     # print(data1.max(),data2.max())
     rms1 = librosa.feature.rms(
         y=data1, frame_length=sr1 // 2 * 2, hop_length=sr1 // 2
-    )  # 每半秒一个点
+    )  # 0.5 초마다 한 포인트
     rms2 = librosa.feature.rms(y=data2, frame_length=sr2 // 2 * 2, hop_length=sr2 // 2)
     rms1 = torch.from_numpy(rms1)
     rms1 = F.interpolate(
@@ -59,14 +59,14 @@ class VC(object):
             config.x_max,
             config.is_half,
         )
-        self.sr = 16000  # hubert输入采样率
-        self.window = 160  # 每帧点数
-        self.t_pad = self.sr * self.x_pad  # 每条前后pad时间
+        self.sr = 16000  # Hubert 입력 샘플링률
+        self.window = 160  # 프레임당 포인트 수
+        self.t_pad = self.sr * self.x_pad  # 각 항목의 앞뒤로 패딩 시간
         self.t_pad_tgt = tgt_sr * self.x_pad
         self.t_pad2 = self.t_pad * 2
-        self.t_query = self.sr * self.x_query  # 查询切点前后查询时间
-        self.t_center = self.sr * self.x_center  # 查询切点位置
-        self.t_max = self.sr * self.x_max  # 免查询时长阈值
+        self.t_query = self.sr * self.x_query  # 쿼리 절단 지점 전후의 조회 시간
+        self.t_center = self.sr * self.x_center  # 쿼리 절단 지점 위치
+        self.t_max = self.sr * self.x_max  # 조회를 면제하는 시간 임계값
         self.device = config.device
 
     def get_f0(
@@ -74,7 +74,7 @@ class VC(object):
         input_audio_path,
         x,
         p_len,
-        f0_up_key,
+        f0_up_key, # 피치 조절 값
         f0_method,
         filter_radius,
         inp_f0=None,
@@ -141,7 +141,7 @@ class VC(object):
             f0 = self.model_rmvpe.infer_from_audio(x, thred=0.03)
         f0 *= pow(2, f0_up_key / 12)
         # with open("test.txt","w")as f:f.write("\n".join([str(i)for i in f0.tolist()]))
-        tf0 = self.sr // self.window  # 每秒f0点数
+        tf0 = self.sr // self.window  # 1초마다 f0 개수
         if inp_f0 is not None:
             delta_t = np.round(
                 (inp_f0[:, 0].max() - inp_f0[:, 0].min()) * tf0 + 1
